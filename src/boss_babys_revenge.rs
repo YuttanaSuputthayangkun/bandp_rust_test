@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 pub const MAX_INPUT_LEN: usize = 1000000;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -23,6 +25,7 @@ impl TryFrom<&str> for Input {
             return Err(StringOverMaxLength);
         }
 
+        // match each characters, if any is not either S or R, it will result in error
         let mut actions = vec![];
         for c in value.chars() {
             let action = match c {
@@ -33,6 +36,15 @@ impl TryFrom<&str> for Input {
             actions.push(action);
         }
         Ok(Input(actions))
+    }
+}
+
+// implement deref for easy access to inner elements
+// as we want to treat it as vec anyway
+impl Deref for Input {
+    type Target = Vec<Action>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
@@ -49,7 +61,15 @@ pub enum Output {
 }
 
 pub fn check_boss_behavior(input: Input) -> Output {
-    todo!()
+    match input {
+        // retaliate first is always a bad boy. can unwrap here because the input has been validated to be not empty.
+        retaliate_first if retaliate_first.first().unwrap() == &Action::R => Output::BadBoy,
+        // shoot last means no retaliation, so he's a bad boy. can unwrap here because the input has been validated to be not empty.
+        shoot_last if shoot_last.last().unwrap() == &Action::S => Output::BadBoy,
+        input => {
+            todo!()
+        }
+    }
 }
 
 #[cfg(test)]
