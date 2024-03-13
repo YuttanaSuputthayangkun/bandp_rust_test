@@ -26,6 +26,8 @@ impl TryFrom<&str> for Input {
         }
 
         // match each character, if any char is not either S or R, it will result in error
+        // I know that this check means we're having O(N) just for input validation
+        // but I think if it's not performance critical, it's better for not polluting the main logic
         let mut actions = vec![];
         for c in value.chars() {
             let action = match c {
@@ -74,6 +76,7 @@ pub fn check_boss_behavior(input: Input) -> Output {
         }
     }
 
+    // O(N)
     // the strategy is to divide input into chunks of shoot-retaliation sequence
     // repeatedly calls 'take_sequence' until no elements left
     // for example SRSSRRR will be divided into "SR" "SSRRR"
@@ -95,7 +98,7 @@ pub fn check_boss_behavior(input: Input) -> Output {
 
 #[derive(Debug)]
 enum SequenceType {
-    Valid,
+    Valid, // number of retaliation is more than shoot
     Invalid,
     Empty,
 }
