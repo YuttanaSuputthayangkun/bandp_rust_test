@@ -1,3 +1,40 @@
+pub const MAX_INPUT_LEN: usize = 1000000;
+
+pub struct Input(Vec<Action>);
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum InputConversionError {
+    EmptyString,
+    StringOverMaxLength,
+    InvalidCharacter,
+}
+
+impl TryFrom<String> for Input {
+    type Error = InputConversionError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        use InputConversionError::*;
+        if value.is_empty() {
+            return Err(EmptyString);
+        }
+
+        if value.len() > MAX_INPUT_LEN {
+            return Err(StringOverMaxLength);
+        }
+
+        let mut actions = vec![];
+        for c in value.chars() {
+            let action = match c {
+                c if c == 'S' => Action::S,
+                c if c == 'R' => Action::R,
+                _ => Err(InvalidCharacter)?,
+            };
+            actions.push(action);
+        }
+        Ok(Input(actions))
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Action {
     S, // shoot
