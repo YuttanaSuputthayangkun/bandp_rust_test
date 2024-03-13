@@ -25,7 +25,7 @@ impl TryFrom<&str> for Input {
             return Err(StringOverMaxLength);
         }
 
-        // match each characters, if any is not either S or R, it will result in error
+        // match each character, if any char is not either S or R, it will result in error
         let mut actions = vec![];
         for c in value.chars() {
             let action = match c {
