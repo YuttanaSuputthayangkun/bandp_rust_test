@@ -61,14 +61,80 @@ pub enum Output {
 }
 
 pub fn check_boss_behavior(input: Input) -> Output {
-    match input {
+    // fast checks to detect easy negative cases
+    {
         // retaliate first is always a bad boy. can unwrap here because the input has been validated to be not empty.
-        retaliate_first if retaliate_first.first().unwrap() == &Action::R => Output::BadBoy,
-        // shoot last means no retaliation, so he's a bad boy. can unwrap here because the input has been validated to be not empty.
-        shoot_last if shoot_last.last().unwrap() == &Action::S => Output::BadBoy,
-        input => {
-            todo!()
+        if input.first().unwrap() == &Action::R {
+            return Output::BadBoy;
         }
+
+        // shoot last means no retaliation, so he's a bad boy. can unwrap here because the input has been validated to be not empty.
+        if input.last().unwrap() == &Action::S {
+            return Output::BadBoy;
+        }
+    }
+
+    // the strategy is to divide input into chunks of shoot-retaliation sequence
+    // repeatedly calls 'take_sequence' until no elements left
+    // for example SRSSRRR will be divided into "SR" "SSRRR"
+    {
+        let actions = &input.0;
+        // use peekable to preserve elements, otherwise 1 element will be lost between each sequence
+        // I don't want to use classical for loop as it's not flexible and not so Rusty
+        let mut iter = actions.iter().peekable();
+        loop {
+            let sequence_type = take_sequence(&mut iter);
+            match sequence_type {
+                SequenceType::Invalid => break Output::BadBoy, // sequence invalid, break off loop with negative result
+                SequenceType::Empty => break Output::GoodBoy, // no element left, break off loop with positive result
+                SequenceType::Valid => continue, // sequence valid, but perhaps there are elements left, so continue on
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+enum SequenceType {
+    Valid,
+    Invalid,
+    Empty,
+}
+
+// take_sequence will consume iterator by skipping as many R, then as many S
+// then checks is the sequence is valid
+fn take_sequence<'a, I>(mut iter: &mut std::iter::Peekable<I>) -> SequenceType
+where
+    I: Iterator<Item = &'a Action>,
+{
+    let mut s_count: usize = 0;
+    let mut r_count: usize = 0;
+
+    loop {
+        let peek = iter.peek();
+        if let Some(&action) = peek {
+            match action {
+                // this means we found shoot when there are retaliates before
+                // means the new sequence is ahead, current one has ended
+                Action::S if r_count > 0 => break,
+                Action::S => {
+                    s_count += 1;
+                    iter.next();
+                }
+                Action::R => {
+                    r_count += 1;
+                    iter.next();
+                }
+            };
+        } else {
+            break;
+        }
+    }
+
+    match (s_count, r_count) {
+        (0, 0) => SequenceType::Empty,
+        // if number of shoot is less or equal than retaliate, consider it valid
+        (s, r) if 0 < s && s <= r => SequenceType::Valid,
+        _ => SequenceType::Invalid,
     }
 }
 
