@@ -35,6 +35,15 @@ impl std::fmt::Debug for Symbol {
     }
 }
 
+impl serde::Serialize for Symbol {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct Price(u64);
 
@@ -54,6 +63,15 @@ impl TryFrom<u64> for Price {
 impl std::fmt::Debug for Price {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
+    }
+}
+
+impl serde::Serialize for Price {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
     }
 }
 
@@ -83,25 +101,50 @@ impl std::fmt::Debug for TimeStamp {
     }
 }
 
-#[derive(Debug)]
+impl serde::Serialize for TimeStamp {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        self.0.serialize(serializer)
+    }
+}
+
+#[derive(Debug, serde::Serialize)]
 pub struct Transaction {
     pub symbol: Symbol,
     pub price: Price,
     pub time_stamp: TimeStamp,
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Deserialize)]
 pub struct TransactionResponse {
     pub tx_hash: String,
 }
 
 #[derive(Debug)]
-pub enum Error {}
+pub enum Error {
+    RequestError(reqwest::Error),
+    InvalidResponseBody,
+}
 
 pub type BroadcastResponse = Result<TransactionResponse, Error>;
 
 pub async fn broadcast(transaction: &Transaction) -> BroadcastResponse {
-    todo!()
+    let trasaction_string = serde_json::to_string(&transaction).unwrap(); // expected to be all valid
+    let client = reqwest::Client::new();
+    let result = client
+        .post(BROADCAST_URL)
+        .json(&trasaction_string)
+        .send()
+        .await
+        .map_err(Error::RequestError)?; // network error
+    let status = result.status();
+    let err_result = result.error_for_status_ref().map_err(Error::RequestError)?;
+    let result_body = result.text().await.map_err(Error::RequestError)?; // encoding error
+    let response: TransactionResponse =
+        serde_json::from_str(&result_body).map_err(|_| Error::InvalidResponseBody)?; // the response body is not serializable
+    Ok(response)
 }
 
 #[cfg(test)]
