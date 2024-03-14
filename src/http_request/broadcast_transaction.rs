@@ -33,6 +33,28 @@ impl std::fmt::Debug for Symbol {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct Price(u64);
+
+/// Price cannot be 0 value.
+impl TryFrom<u64> for Price {
+    type Error = &'static str;
+
+    fn try_from(value: u64) -> Result<Self, Self::Error> {
+        if value == 0 {
+            Err("Price cannot be 0.")
+        } else {
+            Ok(Price(value))
+        }
+    }
+}
+
+impl std::fmt::Debug for Price {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 pub fn broadcast() {
     todo!()
 }
@@ -59,6 +81,11 @@ mod test {
                 Symbol::try_from("555"),
                 Err(IntoSymbolError::InvalidCharacter)
             );
+        }
+
+        #[test]
+        fn zero_price() {
+            assert!(Price::try_from(0).is_err());
         }
     }
 }
