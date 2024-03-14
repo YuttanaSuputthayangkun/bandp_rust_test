@@ -25,6 +25,8 @@ Read more [here](./src/supermans_chicken_rescue.rs)
 For this task, I found myself unable to get valid response from the broadcast endpoint. 
 So I can't really test the APIs. But I assume the objective of the task is about documentation and structures. So I only focus on that.
 
+Input structures are designed solely from my imagination. Please pay it no mind.
+
 Please run `cargo doc` to generate documents.
 
 The main function is named `broadcast`.
