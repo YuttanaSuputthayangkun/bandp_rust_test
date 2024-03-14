@@ -2,41 +2,11 @@ use std::{ops::Deref, sync::Arc, thread};
 
 use itertools::{Itertools, Unique};
 
+use crate::limited_input_range::{self, *};
+
 const MAX_CHICKEN_NUM_LENGTH: usize = 1000000;
 const MAX_ROOF_LENGTH: usize = 1000000;
 const MAX_CHICKEN_POSITION: u32 = 1000000000;
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum RangeError {
-    UnderRange,
-    OverRange,
-}
-
-// I want to validate input by type
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct LimitedInputRange<const MIN: usize, const MAX: usize>(usize);
-
-impl<const MIN: usize, const MAX: usize> TryFrom<usize> for LimitedInputRange<MIN, MAX> {
-    type Error = RangeError;
-
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
-        use RangeError::*;
-        match value {
-            under if under < MIN => Err(UnderRange),
-            over if over > MAX => Err(OverRange),
-            _ => Ok(LimitedInputRange(value)),
-        }
-    }
-}
-
-// for ease of use
-impl<const MIN: usize, const MAX: usize> Deref for LimitedInputRange<MIN, MAX> {
-    type Target = usize;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 pub type ChickenNum = LimitedInputRange<1, MAX_CHICKEN_NUM_LENGTH>;
 pub type RoofLength = LimitedInputRange<1, MAX_ROOF_LENGTH>;
@@ -44,8 +14,6 @@ pub type RoofLength = LimitedInputRange<1, MAX_ROOF_LENGTH>;
 #[derive(Debug, PartialEq, Eq)]
 pub enum InputError {
     ChickenNumNotMatch,
-    ChickenNumOutOfRange,
-    RoofLengthOutOfRange,
     ChickenPositionOutOfRange,
     ChickenPositionNotUnique,
 }
@@ -138,6 +106,7 @@ pub fn max_chicken_protected(input: Input) -> usize {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::limited_input_range::RangeError;
     use InputError::*;
 
     mod input_validation {

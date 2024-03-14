@@ -2,6 +2,7 @@
 
 mod boss_babys_revenge;
 mod http_request;
+mod limited_input_range;
 mod supermans_chicken_rescue;
 
 fn main() {
