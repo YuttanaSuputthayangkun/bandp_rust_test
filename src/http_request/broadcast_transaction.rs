@@ -83,7 +83,24 @@ impl std::fmt::Debug for TimeStamp {
     }
 }
 
-pub fn broadcast() {
+#[derive(Debug)]
+pub struct Transaction {
+    pub symbol: Symbol,
+    pub price: Price,
+    pub time_stamp: TimeStamp,
+}
+
+#[derive(Debug)]
+pub struct TransactionResponse {
+    pub tx_hash: String,
+}
+
+#[derive(Debug)]
+pub enum Error {}
+
+pub type BroadcastResponse = Result<TransactionResponse, Error>;
+
+pub async fn broadcast(transaction: &Transaction) -> BroadcastResponse {
     todo!()
 }
 
