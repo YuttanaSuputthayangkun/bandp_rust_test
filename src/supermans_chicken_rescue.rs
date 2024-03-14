@@ -6,30 +6,77 @@ use crate::limited_input_range::{self, *};
 
 const MAX_CHICKEN_NUM_LENGTH: usize = 1000000;
 const MAX_ROOF_LENGTH: usize = 1000000;
-const MAX_CHICKEN_POSITION: u32 = 1000000000;
+const MAX_CHICKEN_POSITION: usize = 1000000000;
 
+// I want to validate input by type
 pub type ChickenNum = LimitedInputRange<1, MAX_CHICKEN_NUM_LENGTH>;
 pub type RoofLength = LimitedInputRange<1, MAX_ROOF_LENGTH>;
 
 #[derive(Debug, PartialEq, Eq)]
+pub enum ChickenPositionError {
+    ChickenPositionNotUnique,
+    PositionOutOfRange,
+    LengthError(limited_input_range::RangeError),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct ChickenPositions(Vec<usize>);
+
+impl TryFrom<Vec<usize>> for ChickenPositions {
+    type Error = ChickenPositionError;
+
+    fn try_from(value: Vec<usize>) -> Result<Self, Self::Error> {
+        // just to re-use range checking code
+        let range = LimitedInputRange::<1, MAX_CHICKEN_POSITION>::try_from(value.len());
+        range.map_err(ChickenPositionError::LengthError)?; // map range error into our subtype
+
+        // O(N)
+        let all_chicken_positions_in_range =
+            value.iter().all(|p| (1..=MAX_CHICKEN_POSITION).contains(p));
+        if !all_chicken_positions_in_range {
+            return Err(ChickenPositionError::PositionOutOfRange);
+        }
+
+        // O(N) time complexity with O(N) memory
+        // I put this last because it's more expensive than other
+        // the specs doesn't say anything about this, but I assume the position, logically, should be unique
+        let all_chicken_posions_unique = value.iter().unique().count() == value.len();
+        if !all_chicken_posions_unique {
+            return Err(ChickenPositionError::ChickenPositionNotUnique);
+        }
+
+        // will not validate the position order, assuming from the specs that it's guaranteed to be sorted by ascending
+
+        let new_output = ChickenPositions(value);
+        Ok(new_output)
+    }
+}
+
+impl Deref for ChickenPositions {
+    type Target = Vec<usize>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum InputError {
     ChickenNumNotMatch,
-    ChickenPositionOutOfRange,
-    ChickenPositionNotUnique,
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Input {
     chicken_num: ChickenNum,
     roof_length: RoofLength,
-    chicken_positions: Vec<u32>,
+    chicken_positions: ChickenPositions,
 }
 
 impl Input {
     pub fn new(
         chicken_num: ChickenNum,
         roof_length: RoofLength,
-        chicken_positions: Vec<u32>,
+        chicken_positions: ChickenPositions,
     ) -> Result<Self, InputError> {
         use InputError::*;
 
@@ -37,25 +84,6 @@ impl Input {
         if *chicken_num != chicken_positions.len() {
             return Err(ChickenNumNotMatch);
         }
-
-        // O(N)
-        let all_chicken_positions_in_range = chicken_positions
-            .iter()
-            .all(|p| (1..=MAX_CHICKEN_POSITION).contains(p));
-        if !all_chicken_positions_in_range {
-            return Err(ChickenPositionOutOfRange);
-        }
-
-        // O(N) time complexity with O(N) memory
-        // I put this last because it's more expensive than other
-        // the specs doesn't say anything about this, but I assume the position, logically, should be unique
-        let all_chicken_posions_unique =
-            chicken_positions.iter().unique().count() == chicken_positions.len();
-        if !all_chicken_posions_unique {
-            return Err(ChickenPositionNotUnique);
-        }
-
-        // will not validate the position order, assuming from the specs that it's guaranteed to be sorted by ascending
 
         let new_input = Input {
             chicken_num,
@@ -89,7 +117,7 @@ pub fn max_chicken_protected(input: Input) -> usize {
             // since we already called take(roof_length), it should act as a guard
             // take_while will not take more than roof_length
             count += positions
-                .take_while(|&p| p - first < *input.roof_length as u32) // continue to take while the roof covers
+                .take_while(|&p| p - first < *input.roof_length) // continue to take while the roof covers
                 .count();
 
             count
@@ -110,13 +138,19 @@ mod test {
     use InputError::*;
 
     mod input_validation {
+        use std::iter;
+
         use super::*;
         use InputError::*;
 
         #[test]
         fn test_chicken_num_not_match() {
             assert_eq!(
-                Input::new(1.try_into().unwrap(), 1.try_into().unwrap(), vec![]),
+                Input::new(
+                    1.try_into().unwrap(),
+                    1.try_into().unwrap(),
+                    vec![1, 2].try_into().unwrap()
+                ),
                 Err(ChickenNumNotMatch)
             );
         }
@@ -142,32 +176,29 @@ mod test {
         #[test]
         fn test_chicken_position_out_of_range() {
             assert_eq!(
-                Input::new(
-                    2.try_into().unwrap(),
-                    2.try_into().unwrap(),
-                    vec![0, MAX_CHICKEN_POSITION + 1]
-                ),
-                Err(ChickenPositionOutOfRange)
+                ChickenPositions::try_from(vec![0, MAX_CHICKEN_POSITION + 1]),
+                Err(ChickenPositionError::PositionOutOfRange)
             );
         }
 
         #[test]
         fn test_chicken_position_not_unique() {
             assert_eq!(
-                Input::new(3.try_into().unwrap(), 2.try_into().unwrap(), vec![1, 2, 2]),
-                Err(ChickenPositionNotUnique)
+                ChickenPositions::try_from(vec![1, 2, 2]),
+                Err(ChickenPositionError::ChickenPositionNotUnique)
             );
         }
 
         #[test]
-        fn test_chicken_position_length_out_of_range() {
+        fn test_chicken_position_length_range() {
+            // I won't test this case because the range is too high
+            // assert_eq!(
+            //     ChickenPositions::try_from((1..MAX_CHICKEN_POSITION + 1).collect::<Vec<_>>()),
+            //     Err(ChickenPositionError::LengthError(RangeError::OverRange))
+            // );
             assert_eq!(
-                Input::new(
-                    2.try_into().unwrap(),
-                    2.try_into().unwrap(),
-                    vec![0, (MAX_CHICKEN_POSITION + 1)]
-                ),
-                Err(ChickenPositionOutOfRange)
+                ChickenPositions::try_from(vec![]),
+                Err(ChickenPositionError::LengthError(RangeError::UnderRange))
             );
         }
     }
@@ -177,7 +208,7 @@ mod test {
         let input = Input::new(
             5.try_into().unwrap(),
             5.try_into().unwrap(),
-            vec![2, 5, 10, 12, 15],
+            vec![2, 5, 10, 12, 15].try_into().unwrap(),
         )
         .unwrap();
         assert_eq!(max_chicken_protected(input), 2);
@@ -188,7 +219,7 @@ mod test {
         let input = Input::new(
             6.try_into().unwrap(),
             10.try_into().unwrap(),
-            vec![1, 11, 30, 34, 35, 37],
+            vec![1, 11, 30, 34, 35, 37].try_into().unwrap(),
         )
         .unwrap();
         assert_eq!(max_chicken_protected(input), 4);
@@ -199,7 +230,7 @@ mod test {
         let input = Input::new(
             6.try_into().unwrap(),
             10.try_into().unwrap(),
-            vec![1, 2, 3, 4, 5, 6],
+            vec![1, 2, 3, 4, 5, 6].try_into().unwrap(),
         )
         .unwrap();
         assert_eq!(max_chicken_protected(input), 6);
@@ -210,7 +241,7 @@ mod test {
         let input = Input::new(
             6.try_into().unwrap(),
             4.try_into().unwrap(),
-            vec![1, 2, 4, 5, 6, 8],
+            vec![1, 2, 4, 5, 6, 8].try_into().unwrap(),
         )
         .unwrap();
         assert_eq!(max_chicken_protected(input), 3);
