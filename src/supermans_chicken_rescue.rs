@@ -74,7 +74,7 @@ impl Input {
     }
 }
 
-pub fn max_chicken_protected() -> usize {
+pub fn max_chicken_protected(input: Input) -> usize {
     todo!()
 }
 
@@ -125,5 +125,17 @@ mod test {
             Input::new(2, 2, vec![0, (MAX_CHICKEN_POSITION + 1)]),
             Err(ChickenPositionOutOfRange)
         );
+    }
+
+    #[test]
+    fn test_positive_1() {
+        let input = Input::new(5, 5, vec![2, 5, 10, 12, 15]).unwrap();
+        assert_eq!(max_chicken_protected(input), 2);
+    }
+
+    #[test]
+    fn test_negative_1() {
+        let input = Input::new(6, 10, vec![1, 11, 30, 34, 35, 37]).unwrap();
+        assert_eq!(max_chicken_protected(input), 4);
     }
 }
