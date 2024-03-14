@@ -47,6 +47,10 @@ pub enum Error {
     Dne,
 }
 
+// The reason not to just simply return ServerTransactionStatus is because
+// in Rust, we want to communicate meaning of type through standard types like Result
+// I think it's better to move negative statuses into an error, and elide the positive case
+// this way the user can infer meaning and utilizes full feature of Rust
 pub type MonitorResult = Result<(), Error>;
 
 /// Use [`broadcast`] to get a [`TransactionResponse`] then supply its tx_hash to this function.
