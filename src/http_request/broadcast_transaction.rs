@@ -1,3 +1,5 @@
+use std::time::{self, SystemTime, UNIX_EPOCH};
+
 const BROADCAST_URL: &str = "https://mock-node-wgqbnxruha-as.a.run.app/broadcast";
 
 #[derive(Clone, PartialEq, Eq)]
@@ -50,6 +52,32 @@ impl TryFrom<u64> for Price {
 }
 
 impl std::fmt::Debug for Price {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct TimeStamp(u64);
+
+impl TimeStamp {
+    pub fn new(t: time::SystemTime) -> Self {
+        let seconds = t.duration_since(UNIX_EPOCH).unwrap().as_secs();
+        TimeStamp(seconds)
+    }
+
+    pub fn now() -> Self {
+        Self::new(SystemTime::now())
+    }
+}
+
+impl Default for TimeStamp {
+    fn default() -> Self {
+        Self::now()
+    }
+}
+
+impl std::fmt::Debug for TimeStamp {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.0.fmt(f)
     }
